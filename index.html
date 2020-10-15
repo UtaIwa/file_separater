@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>FILE SEPARATER</title>
+    </head>
+    <body>
+        <h1>FILE SEPARATER</h1>
+        <div>
+            <h2>SEPARATE</h2>
+            <div>
+                <input type='file' id='input_file'>
+                <button id='separate'>SEPARATE</button>
+            </div>
+            <div id='separateResults' style='display:none;'>
+                <a href='#' download="file1" id='file1'>DOWNLOAD FILE1</a>
+                <a href='#' download="file2" id='file2'>DOWNLOAD FILE2</a>
+            </div>
+        </div>
+        <hr>
+       <div>
+            <h2>MERGE</h2>
+            <div>
+                <input type='file' id='input_file1'>
+                <input type='file' id='input_file2'>
+                <button id='merge'>MERGE</button>
+            </div>
+            <div id='mergeResults' style='display:none;'>
+                <a href='#' download="mergedFile" id='mergedFile'>DOWNLOAD FILE</a>
+            </div>
+        </div>
+        <script>
+            function separateFile(size, input_file) {
+                const keyFile = new Uint8Array(size);
+                window.crypto.getRandomValues(keyFile);
+                const output = new Uint8Array(size);
+                for (let i = 0; i < size; i++) {
+                    output[i] = keyFile[i] ^ input_file[i];
+                }
+
+                return [keyFile, output];
+            }
+
+            separate.onclick = () => {
+                const file = input_file.files[0];
+
+                const reader = new FileReader();
+                reader.onload = function () {
+                    const outputs = separateFile(file.size, new Uint8Array(reader.result));
+                    console.log(outputs);
+                    file1.href = URL.createObjectURL(new Blob([outputs[0]], {type:'application/octet-stream'}));
+                    file2.href = URL.createObjectURL(new Blob([outputs[1]], {type:'application/octet-stream'}));
+
+                    separateResults.style.display = 'block';
+                }
+
+                reader.readAsArrayBuffer(file.slice());
+            };
+            
+            function mergeFiles(input_file1, input_file2) {
+                const size = input_file1.length;
+                const output = new Uint8Array(size);
+                for (let i = 0; i < size; i++) {
+                    output[i] = input_file1[i] ^ input_file2[i];
+                }
+
+                return output;
+            }
+
+            merge.onclick = () => {
+                const file1 = input_file1.files[0];
+                const file2 = input_file2.files[0];
+
+                const reader1 = new FileReader();
+                const reader2 = new FileReader();
+                let reader1Loaded = false;
+                let reader2Loaded = false;
+
+                const callback = () => {
+                    if (!reader1Loaded ||!reader2Loaded)
+                        return;
+
+                    const outputs = mergeFiles(new Uint8Array(reader1.result), new Uint8Array(reader2.result));
+                    mergedFile.href = URL.createObjectURL(new Blob([outputs], {type:'application/octet-stream'}));
+
+                    mergeResults.style.display = 'block';
+                };
+
+                reader1.onload = function () {
+                    reader1Loaded = true;
+                    callback();
+                }
+
+                reader2.onload = function () {
+                    reader2Loaded = true;
+                    callback();
+                }
+
+                reader1.readAsArrayBuffer(file1.slice());
+                reader2.readAsArrayBuffer(file2.slice());
+            };
+        </script>
+    </body>
+</html>
